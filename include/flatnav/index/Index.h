@@ -857,7 +857,7 @@ class Index {
    */
   inline node_id_t initializeSearch(const void* query, int num_initializations) {
     // select entry_node from a set of random entry point options
-    if (num_initializations <= 0 || _entry_policy == EntryPolicy::Fixed) {
+    if (num_initializations <= 0 || _entry_policy == EntryPolicy::Random) {
       throw std::invalid_argument("num_initializations must be greater than 0.");
     }
 
