@@ -80,13 +80,13 @@ WORKDIR ${FLATNAV_PATH}
 COPY include/flatnav/ ./flatnav/
 COPY python-bindings/ ./python-bindings/
 COPY experiments/ ./experiments/
+COPY README.md .
 
 # Copy external dependencies (for now only cereal)
 COPY external/ ./external/
 
 # Install needed dependencies including flatnav. 
 # Install hnwlib (from a forked repo that has extensions we need)
-WORKDIR ${FLATNAV_PATH}
 RUN git clone https://github.com/BlaiseMuhirwa/hnswlib-original.git \
     && cd hnswlib-original/python_bindings \
     && poetry install --no-root \
@@ -95,6 +95,20 @@ RUN git clone https://github.com/BlaiseMuhirwa/hnswlib-original.git \
 # Get the wheel as an environment variable 
 ENV HNSWLIB_WHEEL=${FLATNAV_PATH}/hnswlib-original/python_bindings/dist/*.whl
 
-# Add hnswlib to the experiment runner 
-WORKDIR ${FLATNAV_PATH}/experiments
-RUN poetry add ${HNSWLIB_WHEEL} && poetry install --no-root
+# Install flatnav (recompiling source)
+# RUN cd python-bindings \
+#     && poetry lock \
+#     && poetry install --no-root \
+#     && poetry run python setup.py bdist_wheel
+RUN cd python-bindings \
+    && pip install scikit-build cmake numpy \
+    && python setup.py bdist_wheel -- -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+# Get the wheel as an environment variable 
+ENV FLATNAV_WHEEL=${FLATNAV_PATH}/python-bindings/dist/*.whl
+
+# Add dependencies to the experiment runner 
+RUN cd experiments
+RUN poetry add ${HNSWLIB_WHEEL} \
+    && poetry add ${FLATNAV_WHEEL} \
+    && poetry install --no-root

@@ -25,6 +25,7 @@
 
 
 using flatnav::Index;
+using flatnav::EntryPolicy;
 using flatnav::distances::DistanceInterface;
 using flatnav::distances::InnerProductDistance;
 using flatnav::distances::SquaredL2Distance;
@@ -237,7 +238,8 @@ class PyIndex : public std::enable_shared_from_this<PyIndex<dist_t, label_t>> {
   }
 
   PyIndex(std::unique_ptr<DistanceInterface<dist_t>>&& distance, DataType data_type, int dataset_size,
-          int max_edges_per_node, bool verbose = false, bool collect_stats = false)
+          int max_edges_per_node, bool verbose = false, bool collect_stats = false, 
+          EntryPolicy entry_policy = EntryPolicy::Strided)
       : _dim(distance->dimension()),
         _label_id(0),
         _verbose(verbose),
@@ -246,7 +248,8 @@ class PyIndex : public std::enable_shared_from_this<PyIndex<dist_t, label_t>> {
             /* dataset_size = */ dataset_size,
             /* max_edges_per_node = */ max_edges_per_node,
             /* collect_stats = */ collect_stats,
-            /* data_type = */ data_type)) {
+            /* data_type = */ data_type,
+            /* entry_policy = */ entry_policy)) {
 
     if (_verbose) {
       uint64_t total_index_memory = _index->getTotalIndexMemory();
@@ -484,24 +487,27 @@ void defineIndexSubmodule(py::module_& index_submodule) {
   index_submodule.def(
       "create",
       [](const std::string& distance_type, int dim, int dataset_size, int max_edges_per_node,
-         DataType index_data_type, bool verbose = false, bool collect_stats = false) {
+         DataType index_data_type, EntryPolicy index_entry_policy, bool verbose = false, bool collect_stats = false) {
         switch (index_data_type) {
           case DataType::float32:
             return createIndex<DataType::float32>(distance_type, dim, dataset_size, max_edges_per_node,
-                                                  verbose, collect_stats);
+                                                  verbose, collect_stats, index_entry_policy);
           case DataType::int8:
             return createIndex<DataType::int8>(distance_type, dim, dataset_size, max_edges_per_node, verbose,
-                                               collect_stats);
+                                               collect_stats, index_entry_policy);
           case DataType::uint8:
             return createIndex<DataType::uint8>(distance_type, dim, dataset_size, max_edges_per_node, verbose,
-                                                collect_stats);
+                                                collect_stats, index_entry_policy);
           default:
             throw std::runtime_error("Unsupported data type");
         }
       },
       py::arg("distance_type"), py::arg("dim"), py::arg("dataset_size"), py::arg("max_edges_per_node"),
-      py::arg("index_data_type") = DataType::float32, py::arg("verbose") = false,
-      py::arg("collect_stats") = false, CONSTRUCTOR_DOCSTRING);
+      py::arg("index_data_type") = DataType::float32, 
+      py::arg("index_entry_policy") = EntryPolicy::Strided,
+      py::arg("verbose") = false,
+      py::arg("collect_stats") = false, 
+      CONSTRUCTOR_DOCSTRING);
 }
 
 void defineDatatypeEnums(py::module_& module) {
@@ -520,6 +526,14 @@ void defineDistanceEnums(py::module_& module) {
       .value("IP", flatnav::distances::MetricType::IP);
 }
 
+void defineEntryEnums(py::module_& module) {
+  py::enum_<EntryPolicy>(module, "EntryPolicy")
+    .value("fixed", EntryPolicy::Fixed)
+    .value("strided", EntryPolicy::Strided),
+    .value("random", EntryPolicy::Random)
+    .export_values();
+}
+
 PYBIND11_MODULE(_core, module) {
 #ifdef VERSION_INFO
   module.attr("__version__") = TOSTRING(VERSION_INFO);
@@ -536,4 +550,7 @@ PYBIND11_MODULE(_core, module) {
   auto index_submodule = module.def_submodule("index");
   defineIndexSubmodule(index_submodule);
   defineDistanceEnums(module);
+
+  auto entry_submodule = module.def_submodule("entry_policy");
+  defineEntryEnums(entry_submodule);
 }

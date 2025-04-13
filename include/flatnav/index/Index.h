@@ -31,6 +31,13 @@ using flatnav::util::DataType;
 
 namespace flatnav {
 
+// Algorithm to select beam search entry point.
+enum class EntryPolicy {
+  Random,
+  Strided,
+  Fixed
+};
+
 // dist_t: A distance function implementing DistanceInterface.
 // label_t: A fixed-width data type for the label (meta-data) of each point.
 template <typename dist_t, typename label_t>
@@ -51,7 +58,7 @@ class Index {
   };
 
   typedef std::priority_queue<dist_node_t, std::vector<dist_node_t>, CompareByFirst> PriorityQueue;
-
+  
   // Large (several GB), pre-allocated block of memory.
   char* _index_memory;
 
@@ -74,6 +81,7 @@ class Index {
 
   bool _collect_stats = false;
   DataType _data_type;
+  EntryPolicy _entry_policy;
 
   // NOTE: These metrics are meaningful the most with single-threaded search.
   // With multi-threaded search, for instance, the number of distance computations will 
@@ -103,7 +111,8 @@ class Index {
         _index_data_guard(std::move(other._index_data_guard)),
         _num_threads(other._num_threads),
         _visited_set_pool(std::move(other._visited_set_pool)),
-        _node_links_mutexes(std::move(other._node_links_mutexes)) {
+        _node_links_mutexes(std::move(other._node_links_mutexes)),
+        _entry_policy(other._entry_policy) {
     other._index_memory = nullptr;
     other._visited_set_pool = nullptr;
   }
@@ -124,6 +133,7 @@ class Index {
       _num_threads = other._num_threads;
       _visited_set_pool = std::move(other._visited_set_pool);
       _node_links_mutexes = std::move(other._node_links_mutexes);
+      _entry_policy = other._entry_policy;
 
       other._index_memory = nullptr;
       other._visited_set_pool = nullptr;
@@ -157,7 +167,8 @@ class Index {
    * the search process.
    */
   Index(std::unique_ptr<DistanceInterface<dist_t>> dist, int dataset_size, int max_edges_per_node,
-        bool collect_stats = false, DataType data_type = DataType::float32)
+        bool collect_stats = false, DataType data_type = DataType::float32,
+        EntryPolicy entry_policy = EntryPolicy::Strided)
       : _M(max_edges_per_node),
         _max_node_count(dataset_size),
         _cur_num_nodes(0),
@@ -167,7 +178,9 @@ class Index {
             /* initial_pool_size = */ 1,
             /* num_elements = */ dataset_size)),
         _node_links_mutexes(dataset_size),
-        _collect_stats(collect_stats), _data_type(data_type) {
+        _collect_stats(collect_stats),
+        _data_type(data_type),
+        _entry_policy(entry_policy) {
 
     // Get the size in bytes of the _node_links_mutexes vector.
     size_t mutexes_size_bytes = _node_links_mutexes.size() * sizeof(std::mutex);
@@ -848,24 +861,51 @@ class Index {
       throw std::invalid_argument("num_initializations must be greater than 0.");
     }
 
-    int step_size = _cur_num_nodes / num_initializations;
-    step_size = step_size ? step_size : 1;
-
     float min_dist = std::numeric_limits<float>::max();
     node_id_t entry_node = 0;
 
-    if (_collect_stats) {
-      _distance_computations.fetch_add(num_initializations);
+    switch (_entry_policy) {
+    case EntryPolicy::Fixed: {
+      if (_collect_stats) {
+        _distance_computations.fetch_add(1);
+      }
+    } break;
+
+    case EntryPolicy::Strided: {
+      if (_collect_stats) {
+        _distance_computations.fetch_add(num_initializations);
+      }
+      
+      int step_size = _cur_num_nodes / num_initializations;
+      step_size = step_size ? step_size : 1;
+
+      for (node_id_t node = 0; node < _cur_num_nodes; node += step_size) {
+        float dist = _distance->distance(/* x = */ query, /* y = */ getNodeData(node),
+                                        /* asymmetric = */ true);
+        if (dist < min_dist) {
+          min_dist = dist;
+          entry_node = node;
+        }
+      }
+    } break;
+
+    case EntryPolicy::Random: {
+      if (_collect_stats) {
+        _distance_computations.fetch_add(num_initializations);
+      }
+      
+      for (int i = 0; i < num_initializations; i++) {
+        node_id_t node = rand() % _cur_num_nodes;
+        float dist = _distance->distance(query, getNodeData(node), true);
+        if (dist < min_dist) {
+          min_dist = dist;
+          entry_node = node;
+        }
+      }
+    } break;
+    
     }
 
-    for (node_id_t node = 0; node < _cur_num_nodes; node += step_size) {
-      float dist = _distance->distance(/* x = */ query, /* y = */ getNodeData(node),
-                                       /* asymmetric = */ true);
-      if (dist < min_dist) {
-        min_dist = dist;
-        entry_node = node;
-      }
-    }
     return entry_node;
   }
 

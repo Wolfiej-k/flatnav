@@ -10,6 +10,7 @@ import platform, socket, psutil
 import argparse
 import flatnav
 from flatnav.data_type import DataType
+from flatnav.entry_policy import EntryPolicy
 from data_loader import get_data_loader
 from plotting.plot import create_plot, create_linestyles
 from plotting.metrics import metric_manager
@@ -19,6 +20,13 @@ FLATNAV_DATA_TYPES = {
     "float32": DataType.float32,
     "uint8": DataType.uint8,
     "int8": DataType.int8,
+}
+
+
+FLATNAV_ENTRY_POLICIES = {
+    "fixed": EntryPolicy.fixed,
+    "strided": EntryPolicy.strided,
+    "random": EntryPolicy.random,
 }
 
 
@@ -166,6 +174,7 @@ def train_index(
     ef_construction: int,
     index_type: str = "flatnav",
     data_type: str = "float32",
+    entry_policy: str = "strided",
     use_hnsw_base_layer: bool = False,
     hnsw_base_layer_filename: Optional[str] = None,
     num_build_threads: int = 1,
@@ -242,6 +251,7 @@ def train_index(
         index = flatnav.index.create(
             distance_type=distance_type,
             index_data_type=FLATNAV_DATA_TYPES[data_type],
+            index_entry_policy=FLATNAV_ENTRY_POLICIES[entry_policy],
             dim=dim,
             dataset_size=dataset_size,
             max_edges_per_node=max_edges_per_node,
@@ -275,6 +285,7 @@ def main(
     requested_metrics: List[str],
     index_type: str = "flatnav",
     data_type: str = "float32",
+    entry_policy: str = "strided",
     use_hnsw_base_layer: bool = False,
     hnsw_base_layer_filename: Optional[str] = None,
     reordering_strategies: List[str] | None = None,
@@ -293,6 +304,7 @@ def main(
         index = train_index(
             index_type=index_type,
             data_type=data_type,
+            entry_policy=entry_policy,
             train_dataset=train_dataset,
             max_edges_per_node=node_links,
             ef_construction=ef_cons,
@@ -374,6 +386,12 @@ def parse_arguments() -> argparse.Namespace:
         "--data-type",
         default="float32",
         help="Data type of the index. Options include `float32`, `uint8` and `int8`.",
+    )
+    
+    parser.add_argument(
+        "--entry-policy",
+        default="strided",
+        help="Policy to select graph entry point. Options include `fixed`, `strided`, and `random`.",
     )
 
     parser.add_argument(
@@ -583,6 +601,7 @@ def run_experiment():
         dataset_name=args.dataset_name,
         index_type=args.index_type.lower(),
         data_type=args.data_type,
+        entry_policy=args.entry_policy,
         use_hnsw_base_layer=args.use_hnsw_base_layer,
         hnsw_base_layer_filename=args.hnsw_base_layer_filename,
         reordering_strategies=args.reordering_strategies,

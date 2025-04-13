@@ -136,7 +136,7 @@ setup(
     install_requires=[
         # The following need to be synced with pyproject.toml
         "numpy>=1.21.0,<2",
-        "h5py==3.11.0"
+        "h5py==3.8.0"
     ],
     license="Apache License, Version 2.0",
     keywords=["similarity search", "vector databases", "machine learning"],
