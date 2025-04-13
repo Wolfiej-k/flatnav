@@ -566,7 +566,7 @@ gist-bench-flatnav-strided:
 		--ef-construction 30 40 50 100 200 300 \
 		--ef-search 100 200 300 500 1000 3000 \
 		--metric l2 \
-		--num-build-threads 16 \
+		--num-build-threads 64 \
 		--num-search-threads 1 
 
 
@@ -584,7 +584,7 @@ gist-bench-flatnav-random:
 		--ef-construction 30 40 50 100 200 300 \
 		--ef-search 100 200 300 500 1000 3000 \
 		--metric l2 \
-		--num-build-threads 16 \
+		--num-build-threads 64 \
 		--num-search-threads 1
 
 
@@ -602,22 +602,7 @@ gist-bench-flatnav-fixed:
 		--ef-construction 30 40 50 100 200 300 \
 		--ef-search 100 200 300 500 1000 3000 \
 		--metric l2 \
-		--num-build-threads 16 \
-		--num-search-threads 1
-
-
-gist-bench-hnsw: 
-	poetry run python run-benchmark.py \
-		--dataset-name gist \
-		--dataset /root/data/gist-960-euclidean/gist-960-euclidean.train.npy \
-		--queries /root/data/gist-960-euclidean/gist-960-euclidean.test.npy \
-		--gtruth /root/data/gist-960-euclidean/gist-960-euclidean.gtruth.npy \
-		--index-type hnsw \
-		--num-node-links 32 \
-		--ef-construction 30 40 50 100 200 300 \
-		--ef-search 100 200 300 500 1000 3000 \
-		--metric l2 \
-		--num-build-threads 16 \
+		--num-build-threads 64 \
 		--num-search-threads 1
 
 ################################

@@ -232,6 +232,7 @@ def train_index(
         index = flatnav.index.create(
             distance_type=distance_type,
             index_data_type=FLATNAV_DATA_TYPES[data_type],
+            index_entry_policy=FLATNAV_ENTRY_POLICIES[entry_policy],
             dim=dim,
             dataset_size=dataset_size,
             max_edges_per_node=max_edges_per_node,
