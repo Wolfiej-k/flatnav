@@ -2,6 +2,7 @@ import sys
 from ._core import (
     MetricType,
     data_type,
+    entry_policy,
     __version__,
     __doc__
 )

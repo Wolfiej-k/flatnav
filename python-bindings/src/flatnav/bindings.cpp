@@ -528,10 +528,10 @@ void defineDistanceEnums(py::module_& module) {
 
 void defineEntryEnums(py::module_& module) {
   py::enum_<EntryPolicy>(module, "EntryPolicy")
-    .value("fixed", EntryPolicy::Fixed)
-    .value("strided", EntryPolicy::Strided),
-    .value("random", EntryPolicy::Random)
-    .export_values();
+      .value("fixed", EntryPolicy::Fixed)
+      .value("strided", EntryPolicy::Strided)
+      .value("random", EntryPolicy::Random)
+      .export_values();
 }
 
 PYBIND11_MODULE(_core, module) {
@@ -547,10 +547,10 @@ PYBIND11_MODULE(_core, module) {
   auto data_type_submodule = module.def_submodule("data_type");
   defineDatatypeEnums(data_type_submodule);
 
+  auto entry_submodule = module.def_submodule("entry_policy");
+  defineEntryEnums(entry_submodule);
+
   auto index_submodule = module.def_submodule("index");
   defineIndexSubmodule(index_submodule);
   defineDistanceEnums(module);
-
-  auto entry_submodule = module.def_submodule("entry_policy");
-  defineEntryEnums(entry_submodule);
 }

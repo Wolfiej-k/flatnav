@@ -54,7 +54,6 @@ ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
 ENV PYTHON_VERSION=${PYTHON_VERSION}
 
-
 RUN set -ex \
     && curl -L https://pyenv.run | /bin/sh \
     && pyenv update \
@@ -76,8 +75,17 @@ ENV PATH="${POETRY_HOME}/bin:${PATH}"
 
 WORKDIR ${FLATNAV_PATH}
 
+# Install hnwlib (from a forked repo that has extensions we need)
+RUN git clone https://github.com/BlaiseMuhirwa/hnswlib-original.git \
+    && cd hnswlib-original/python_bindings \
+    && poetry install --no-root \
+    && poetry run python setup.py bdist_wheel
+
+# Get the wheel as an environment variable 
+ENV HNSWLIB_WHEEL=${FLATNAV_PATH}/hnswlib-original/python_bindings/dist/*.whl
+
 # Copy source code
-COPY include/flatnav/ ./flatnav/
+COPY include/flatnav/ ./include/flatnav/
 COPY python-bindings/ ./python-bindings/
 COPY experiments/ ./experiments/
 COPY README.md .
@@ -85,21 +93,7 @@ COPY README.md .
 # Copy external dependencies (for now only cereal)
 COPY external/ ./external/
 
-# Install needed dependencies including flatnav. 
-# Install hnwlib (from a forked repo that has extensions we need)
-RUN git clone https://github.com/BlaiseMuhirwa/hnswlib-original.git \
-    && cd hnswlib-original/python_bindings \
-    && poetry install --no-root \
-    && poetry run python setup.py bdist_wheel  
-
-# Get the wheel as an environment variable 
-ENV HNSWLIB_WHEEL=${FLATNAV_PATH}/hnswlib-original/python_bindings/dist/*.whl
-
 # Install flatnav (recompiling source)
-# RUN cd python-bindings \
-#     && poetry lock \
-#     && poetry install --no-root \
-#     && poetry run python setup.py bdist_wheel
 RUN cd python-bindings \
     && pip install scikit-build cmake numpy \
     && python setup.py bdist_wheel -- -DCMAKE_POLICY_VERSION_MINIMUM=3.5
@@ -108,7 +102,7 @@ RUN cd python-bindings \
 ENV FLATNAV_WHEEL=${FLATNAV_PATH}/python-bindings/dist/*.whl
 
 # Add dependencies to the experiment runner 
-RUN cd experiments
+WORKDIR ${FLATNAV_PATH}/experiments
 RUN poetry add ${HNSWLIB_WHEEL} \
     && poetry add ${FLATNAV_WHEEL} \
     && poetry install --no-root
