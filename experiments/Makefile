@@ -605,6 +605,57 @@ gist-bench-flatnav-fixed:
 		--num-build-threads 64 \
 		--num-search-threads 1
 
+glove100-bench-flatnav-strided:
+	poetry run python run-benchmark.py \
+		--dataset /root/data/glove-100-angular/glove-100-angular.train.npy \
+		--queries /root/data/glove-100-angular/glove-100-angular.test.npy \
+		--gtruth /root/data/glove-100-angular/glove-100-angular.gtruth.npy \
+		--dataset-name glove-100-angular \
+		--index-type flatnav_strided \
+		--entry-policy strided \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename glove100.mtx \
+		--num-node-links 32 \
+		--ef-construction 30 40 50 100 200 300 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--num-build-threads 64 \
+		--num-search-threads 1 \
+		--metric angular
+
+glove100-bench-flatnav-random:
+	poetry run python run-benchmark.py \
+		--dataset /root/data/glove-100-angular/glove-100-angular.train.npy \
+		--queries /root/data/glove-100-angular/glove-100-angular.test.npy \
+		--gtruth /root/data/glove-100-angular/glove-100-angular.gtruth.npy \
+		--dataset-name glove-100-angular \
+		--index-type flatnav_random \
+		--entry-policy random \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename glove100.mtx \
+		--num-node-links 32 \
+		--ef-construction 30 40 50 100 200 300 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--num-build-threads 64 \
+		--num-search-threads 1 \
+		--metric angular
+
+glove100-bench-flatnav-fixed:
+	poetry run python run-benchmark.py \
+		--dataset /root/data/glove-100-angular/glove-100-angular.train.npy \
+		--queries /root/data/glove-100-angular/glove-100-angular.test.npy \
+		--gtruth /root/data/glove-100-angular/glove-100-angular.gtruth.npy \
+		--dataset-name glove-100-angular \
+		--index-type flatnav_fixed \
+		--entry-policy fixed \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename glove100.mtx \
+		--num-node-links 32 \
+		--ef-construction 30 40 50 100 200 300 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--num-build-threads 64 \
+		--num-search-threads 1 \
+		--metric angular
+
 ################################
 # End Custom Benchmarks
 ################################
