@@ -28,6 +28,7 @@ FLATNAV_ENTRY_POLICIES = {
     "strided": EntryPolicy.strided,
     "random": EntryPolicy.random,
     "frequency": EntryPolicy.frequency,
+    "ideal": EntryPolicy.ideal,
 }
 
 

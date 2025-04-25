@@ -37,7 +37,8 @@ enum class EntryPolicy {
   Random,
   Strided,
   Fixed,
-  Frequency
+  Frequency,
+  Ideal
 };
 
 // dist_t: A distance function implementing DistanceInterface.
@@ -948,6 +949,20 @@ class Index {
       }
 
       for (node_id_t node : _top_node_frequencies) {
+        float dist = _distance->distance(query, getNodeData(node), true);
+        if (dist < min_dist) {
+          min_dist = dist;
+          entry_node = node;
+        }
+      }
+    } break;
+
+    case EntryPolicy::Ideal: {
+      if (_collect_stats) {
+        _distance_computations.fetch_add(1);
+      }
+
+      for (node_id_t node = 0; node < _cur_num_nodes; node++) {
         float dist = _distance->distance(query, getNodeData(node), true);
         if (dist < min_dist) {
           min_dist = dist;
