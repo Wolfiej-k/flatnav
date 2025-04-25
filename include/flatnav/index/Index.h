@@ -91,7 +91,7 @@ class Index {
     }
   };
   
-  constexpr uint32_t _num_top_nodes = 100;
+  static constexpr uint32_t _num_top_nodes = 100;
   std::vector<uint32_t> _node_frequencies;
   std::multiset<node_id_t, CompareByFrequency> _top_node_frequencies;
 
