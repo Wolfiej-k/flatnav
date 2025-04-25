@@ -531,6 +531,7 @@ void defineEntryEnums(py::module_& module) {
       .value("fixed", EntryPolicy::Fixed)
       .value("strided", EntryPolicy::Strided)
       .value("random", EntryPolicy::Random)
+      .value("frequency", EntryPolicy::Frequency)
       .export_values();
 }
 

@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <set>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -35,7 +36,8 @@ namespace flatnav {
 enum class EntryPolicy {
   Random,
   Strided,
-  Fixed
+  Fixed,
+  Frequency
 };
 
 // dist_t: A distance function implementing DistanceInterface.
@@ -78,6 +80,20 @@ class Index {
   // Remembers which nodes we've visited, to avoid re-computing distances.
   VisitedSetPool* _visited_set_pool;
   std::vector<std::mutex> _node_links_mutexes;
+  
+  // Maintain most frequently accessed nodes (e.g., hubs).
+  struct CompareByFrequency {
+    const std::vector<uint32_t>* _frequencies;
+    CompareByFrequency() : _frequencies(nullptr) {}
+    CompareByFrequency(const std::vector<uint32_t>& f) : _frequencies(&f) {}
+    bool operator()(node_id_t i, node_id_t j) const noexcept {
+      return (*_frequencies)[i] < (*_frequencies)[j];
+    }
+  };
+  
+  constexpr uint32_t _num_top_nodes = 100;
+  std::vector<uint32_t> _node_frequencies;
+  std::multiset<node_id_t, CompareByFrequency> _top_node_frequencies;
 
   bool _collect_stats = false;
   DataType _data_type;
@@ -112,6 +128,8 @@ class Index {
         _num_threads(other._num_threads),
         _visited_set_pool(std::move(other._visited_set_pool)),
         _node_links_mutexes(std::move(other._node_links_mutexes)),
+        _node_frequencies(std::move(other._node_frequencies)),
+        _top_node_frequencies(std::move(other._top_node_frequencies)),
         _entry_policy(other._entry_policy) {
     other._index_memory = nullptr;
     other._visited_set_pool = nullptr;
@@ -133,6 +151,8 @@ class Index {
       _num_threads = other._num_threads;
       _visited_set_pool = std::move(other._visited_set_pool);
       _node_links_mutexes = std::move(other._node_links_mutexes);
+      _node_frequencies = std::move(other._node_frequencies);
+      _top_node_frequencies = std::move(other._top_node_frequencies);
       _entry_policy = other._entry_policy;
 
       other._index_memory = nullptr;
@@ -178,13 +198,14 @@ class Index {
             /* initial_pool_size = */ 1,
             /* num_elements = */ dataset_size)),
         _node_links_mutexes(dataset_size),
+        _node_frequencies(dataset_size),
+        _top_node_frequencies(CompareByFrequency(_node_frequencies)),
         _collect_stats(collect_stats),
         _data_type(data_type),
         _entry_policy(entry_policy) {
 
-    // Get the size in bytes of the _node_links_mutexes vector.
+    // Get the size in bytes of metadata vectors.
     size_t mutexes_size_bytes = _node_links_mutexes.size() * sizeof(std::mutex);
-
     _data_size_bytes = _distance->dataSize();
     _node_size_bytes = _data_size_bytes + (sizeof(node_id_t) * _M) + sizeof(label_t);
     uint64_t index_size = static_cast<uint64_t>(_node_size_bytes) * static_cast<uint64_t>(_max_node_count);
@@ -282,6 +303,11 @@ class Index {
     // Initialize all edges to self
     std::fill_n(links, _M, new_node_id);
     _cur_num_nodes++;
+
+    // Initialize top frequency tree.
+    if (_top_node_frequencies.size() < _num_top_nodes) {
+      _top_node_frequencies.insert(new_node_id);
+    }
   }
 
   /**
@@ -676,6 +702,18 @@ class Index {
     // Lock all operations on this specific node
     std::unique_lock<std::mutex> lock(_node_links_mutexes[node]);
 
+    // Update access frequency
+    auto least_frequent = _top_node_frequencies.begin();
+    auto node_handle = _top_node_frequencies.extract(node);
+    _node_frequencies[node]++;
+    
+    if (node_handle) {
+      _top_node_frequencies.insert(std::move(node_handle));
+    } else if (_node_frequencies[node] > *least_frequent) {
+      _top_node_frequencies.erase(least_frequent);
+      _top_node_frequencies.insert(node);
+    }
+
     node_id_t* neighbor_node_links = getNodeLinks(node);
     for (uint32_t i = 0; i < _M; i++) {
       node_id_t neighbor_node_id = neighbor_node_links[i];
@@ -896,6 +934,20 @@ class Index {
       
       for (int i = 0; i < num_initializations; i++) {
         node_id_t node = rand() % _cur_num_nodes;
+        float dist = _distance->distance(query, getNodeData(node), true);
+        if (dist < min_dist) {
+          min_dist = dist;
+          entry_node = node;
+        }
+      }
+    } break;
+
+    case EntryPolicy::Frequency: {
+      if (_collect_stats) {
+        _distance_computations.fetch_add(num_initializations);
+      }
+
+      for (node_id_t node : _top_node_frequencies) {
         float dist = _distance->distance(query, getNodeData(node), true);
         if (dist < min_dist) {
           min_dist = dist;
