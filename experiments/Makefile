@@ -622,23 +622,6 @@ gist-bench-flatnav-frequency:
 		--num-build-threads 64 \
 		--num-search-threads 1
 
-gist-bench-flatnav-ideal: 
-	poetry run python run-benchmark.py \
-		--dataset-name gist \
-		--dataset /root/data/gist-960-euclidean/gist-960-euclidean.train.npy \
-		--queries /root/data/gist-960-euclidean/gist-960-euclidean.test.npy \
-		--gtruth /root/data/gist-960-euclidean/gist-960-euclidean.gtruth.npy \
-		--index-type flatnav_ideal \
-		--entry-policy ideal \
-		--use-hnsw-base-layer \
-		--hnsw-base-layer-filename gist.mtx \
-		--num-node-links 32 \
-		--ef-construction 30 40 50 100 200 300 \
-		--ef-search 100 200 300 500 1000 3000 \
-		--metric l2 \
-		--num-build-threads 64 \
-		--num-search-threads 1
-
 glove100-bench-flatnav-strided:
 	poetry run python run-benchmark.py \
 		--dataset /root/data/glove-100-angular/glove-100-angular.train.npy \
@@ -706,6 +689,74 @@ glove100-bench-flatnav-frequency:
 		--num-build-threads 64 \
 		--num-search-threads 1 \
 		--metric angular
+
+bigann-10m-bench-flatnav-strided: 
+	poetry run python run-benchmark.py \
+		--dataset-name bigann-10m \
+		--dataset /root/data/bigann/train_10m.npy \
+		--queries /root/data/bigann/queries.npy \
+		--gtruth /root/data/bigann/ground_truth_10m.npy \
+		--index-type flatnav_strided \
+		--entry-policy strided \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename bigann-10m.mtx \
+		--num-node-links 32 \
+		--ef-construction 50 100 200 300 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--metric l2 \
+		--num-build-threads 64 \
+		--num-search-threads 1
+
+bigann-10m-bench-flatnav-frequency: 
+	poetry run python run-benchmark.py \
+		--dataset-name bigann-10m \
+		--dataset /root/data/bigann/train_10m.npy \
+		--queries /root/data/bigann/queries.npy \
+		--gtruth /root/data/bigann/ground_truth_10m.npy \
+		--index-type flatnav_frequency \
+		--entry-policy frequency \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename bigann-10m.mtx \
+		--num-node-links 32 \
+		--ef-construction 50 100 200 300 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--metric l2 \
+		--num-build-threads 64 \
+		--num-search-threads 1
+
+bigann-100m-bench-flatnav-strided: 
+	poetry run python run-benchmark.py \
+		--dataset-name bigann-100m \
+		--dataset /root/data/bigann/train_100m.npy \
+		--queries /root/data/bigann/queries.npy \
+		--gtruth /root/data/bigann/ground_truth_100m.npy \
+		--index-type flatnav_strided \
+		--entry-policy strided \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename bigann-100m.mtx \
+		--num-node-links 32 \
+		--ef-construction 50 100 200 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--metric l2 \
+		--num-build-threads 32 \
+		--num-search-threads 1
+
+bigann-100m-bench-flatnav-frequency: 
+	poetry run python run-benchmark.py \
+		--dataset-name bigann-100m \
+		--dataset /root/data/bigann/train_100m.npy \
+		--queries /root/data/bigann/queries.npy \
+		--gtruth /root/data/bigann/ground_truth_100m.npy \
+		--index-type flatnav_frequency \
+		--entry-policy frequency \
+		--use-hnsw-base-layer \
+		--hnsw-base-layer-filename bigann-100m.mtx \
+		--num-node-links 32 \
+		--ef-construction 50 100 200 \
+		--ef-search 100 200 300 500 1000 3000 \
+		--metric l2 \
+		--num-build-threads 32 \
+		--num-search-threads 1
 
 ################################
 # End Custom Benchmarks
