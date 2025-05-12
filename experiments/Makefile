@@ -738,7 +738,7 @@ bigann-100m-bench-flatnav-strided:
 		--ef-construction 50 100 200 \
 		--ef-search 100 200 300 500 1000 3000 \
 		--metric l2 \
-		--num-build-threads 32 \
+		--num-build-threads 64 \
 		--num-search-threads 1
 
 bigann-100m-bench-flatnav-frequency: 
@@ -755,7 +755,7 @@ bigann-100m-bench-flatnav-frequency:
 		--ef-construction 50 100 200 \
 		--ef-search 100 200 300 500 1000 3000 \
 		--metric l2 \
-		--num-build-threads 32 \
+		--num-build-threads 64 \
 		--num-search-threads 1
 
 ################################
